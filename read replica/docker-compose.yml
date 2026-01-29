@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  app:  
+    build: ./app
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db-master
+      - db-replica
+    environment:
+      - DB_MASTER_HOST=db-master
+      - DB_REPLICA_HOST=db-replica
+      - DB_USER=myuser
+      - DB_PASSWORD=mypassword
+      - DB_NAME=mydb
+  
+  db-master:
+    image: bitnami/postgresql:latest
+    container_name: db-master
+    ports:
+      - "5432:5432"
+    volumes:
+      - master_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=myuser
+      - POSTGRESQL_PASSWORD=mypassword
+      - POSTGRESQL_DATABASE=mydb
+
+  db-replica:
+    image: bitnami/postgresql:latest
+    container_name: db-replica
+    ports:
+      - "5433:5432"  # Maps Host Port 5433 -> Container Port 5432
+    depends_on:
+      - db-master
+    volumes:
+      - replica_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=db-master
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_USERNAME=myuser
+      - POSTGRESQL_PASSWORD=mypassword
+  
+volumes:
+  master_data:
+  replica_data:
